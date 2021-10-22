@@ -4,7 +4,7 @@ namespace Lexik\Bundle\FormFilterBundle\Event\Subscriber;
 
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\ORM\Mapping\ClassMetadataInfo;
@@ -78,7 +78,7 @@ class DoctrineORMSubscriber extends AbstractDoctrineSubscriber implements EventS
 
             if ($dqlFrom = $event->getQueryBuilder()->getDQLPart('from')) {
                 $rootPart = reset($dqlFrom);
-                $fieldName = ltrim($event->getField(), $rootPart->getAlias() . '.');
+                $fieldName = substr($event->getField(), strlen($rootPart->getAlias().'.'));
                 $metadata = $queryBuilder->getEntityManager()->getClassMetadata($rootPart->getFrom());
 
                 if (isset($metadata->associationMappings[$fieldName]) && (!$metadata->associationMappings[$fieldName]['isOwningSide'] || $metadata->associationMappings[$fieldName]['type'] === ClassMetadataInfo::MANY_TO_MANY)) {
@@ -104,11 +104,17 @@ class DoctrineORMSubscriber extends AbstractDoctrineSubscriber implements EventS
                     );
                 }
             } else {
+                $paramType = Types::INTEGER;
+                if (isset($fieldName) && isset($metadata->associationMappings[$fieldName])) {
+                    $associationMapping = $metadata->associationMappings[$fieldName];
+                    $associationMetadata = $queryBuilder->getEntityManager()->getClassMetadata($associationMapping['targetEntity']);
+                    $paramType = $associationMetadata->fieldMappings[reset($associationMetadata->identifier)]['type'];
+                }
                 $event->setCondition(
                     $expr->eq($filterField, ':'.$paramName),
                     array($paramName => array(
                         $this->getEntityIdentifier($values['value'], $queryBuilder->getEntityManager()),
-                        Type::INTEGER
+                        $paramType
                     ))
                 );
             }
