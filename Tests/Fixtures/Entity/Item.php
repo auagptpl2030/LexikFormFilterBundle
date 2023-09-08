@@ -2,6 +2,7 @@
 
 namespace Lexik\Bundle\FormFilterBundle\Tests\Fixtures\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -44,9 +45,20 @@ class Item
     protected $updatedAt;
 
     /**
-     * @ORM\OneToMany(targetEntity="Options", mappedBy="item")
+     * @ORM\OneToMany(targetEntity="Options", mappedBy="item", cascade="persist")
      */
     private $options;
+
+    /**
+     * @ORM\OneToMany(targetEntity="Tag", mappedBy="item", cascade="persist")
+     */
+    private $tags;
+
+    public function __construct()
+    {
+        $this->options = new ArrayCollection();
+        $this->tags = new ArrayCollection();
+    }
 
     /**
      * Get id
@@ -121,7 +133,7 @@ class Item
     /**
      * Set createdAt
      *
-     * @param datetime $createdAt
+     * @param \DateTime $createdAt
      */
     public function setCreatedAt($createdAt)
     {
@@ -131,7 +143,7 @@ class Item
     /**
      * Get createdAt
      *
-     * @return datetime $createdAt
+     * @return \DateTime $createdAt
      */
     public function getCreatedAt()
     {
@@ -159,7 +171,7 @@ class Item
     }
 
     /**
-     * @param mixed $options
+     * @param ArrayCollection $options
      */
     public function setOptions($options)
     {
@@ -167,10 +179,26 @@ class Item
     }
 
     /**
-     * @return mixed
+     * @return ArrayCollection
      */
     public function getOptions()
     {
         return $this->options;
+    }
+
+    /**
+     * @return ArrayCollection
+     */
+    public function getTags()
+    {
+        return $this->tags;
+    }
+
+    /**
+     * @param ArrayCollection $tags
+     */
+    public function setTags($tags)
+    {
+        $this->tags = $tags;
     }
 }
