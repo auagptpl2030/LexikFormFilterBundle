@@ -77,7 +77,7 @@ class DoctrineORMSubscriber extends AbstractDoctrineSubscriber implements EventS
 
             if ($dqlFrom = $event->getQueryBuilder()->getDQLPart('from')) {
                 $rootPart = reset($dqlFrom);
-                $fieldName = ltrim($event->getField(), $rootPart->getAlias() . '.');
+                $fieldName = substr($event->getField(), strlen($rootPart->getAlias() . '.'));
                 $metadata = $queryBuilder->getEntityManager()->getClassMetadata($rootPart->getFrom());
 
                 if (isset($metadata->associationMappings[$fieldName]) && (!$metadata->associationMappings[$fieldName]['isOwningSide'] || $metadata->associationMappings[$fieldName]['type'] === ClassMetadataInfo::MANY_TO_MANY)) {
@@ -103,6 +103,12 @@ class DoctrineORMSubscriber extends AbstractDoctrineSubscriber implements EventS
                     );
                 }
             } else {
+                $paramType = Types::INTEGER;
+                if (isset($fieldName, $metadata->associationMappings[$fieldName])) {
+                    $associationMapping = $metadata->associationMappings[$fieldName];
+                    $associationMetadata = $queryBuilder->getEntityManager()->getClassMetadata($associationMapping['targetEntity']);
+                    $paramType = $associationMetadata->fieldMappings[reset($associationMetadata->identifier)]['type'];
+                }
                 $event->setCondition(
                     $expr->eq($filterField, ':' . $paramName),
                     [$paramName => [$this->getEntityIdentifier($values['value'], $queryBuilder->getEntityManager()), Types::INTEGER]]
@@ -122,7 +128,7 @@ class DoctrineORMSubscriber extends AbstractDoctrineSubscriber implements EventS
         $metadata = $em->getClassMetadata($class);
 
         if ($metadata->isIdentifierComposite) {
-            throw new \RuntimeException(sprintf('Composite identifier is not supported by FilterEntityType.', $class));
+            throw new \RuntimeException(sprintf('Composite identifier is not supported by FilterEntityType.%s', $class));
         }
 
         $identifierValues = $metadata->getIdentifierValues($value);
